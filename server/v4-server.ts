@@ -256,7 +256,7 @@ class RelayServer {
     return {
       ok: true,
       service: 'coyote-dglab-relay',
-      version: '2.6.4',
+      version: '2.6.5',
       connections: this.connectionCount(),
       controllers: this.controllerCount(),
       controlledClients: this.clientCount(),
@@ -313,6 +313,10 @@ class RelayServer {
         deviceCount: countReportedDevices(record),
         gameOnline: !!record.peakTimestamp && now - record.peakTimestamp * 1000 < 10_000,
         scene: typeof record.peak.scene === 'string' ? record.peak.scene : null,
+        stageNumber: typeof record.peak.stageNumber === 'number' ? record.peak.stageNumber : null,
+        stageName: typeof record.peak.stageName === 'string' ? record.peak.stageName : null,
+        stageDisplay: typeof record.peak.stageDisplay === 'string' ? record.peak.stageDisplay : null,
+        biome: typeof record.peak.biome === 'string' ? record.peak.biome : null,
         hp: typeof record.peak.hp === 'number' ? record.peak.hp : null,
       }))
       .sort((a, b) => Number(b.connected) - Number(a.connected) || String(b.lastSeenAt).localeCompare(String(a.lastSeenAt)));

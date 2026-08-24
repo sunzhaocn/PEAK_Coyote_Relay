@@ -149,6 +149,7 @@ function renderConnections(){
     const privacy=(report.logUploadDisabled||report.stateUploadDisabled)?`${report.logUploadDisabled?'禁日志 ':''}${report.stateUploadDisabled?'禁状态':''}`:'允许上报';
     const reportedDeviceCount=Number(report.deviceCount);
     const attachedCount=Number.isFinite(reportedDeviceCount)&&reportedDeviceCount>0?reportedDeviceCount:group.devices.length;
+    const stage=report.stageDisplay?` · ${esc(report.stageDisplay)}`:(report.stageName?` · ${esc(report.stageName)}`:'');
     const scene=report.scene?` · 地图 ${esc(report.scene)}`:'';
     const childRows=group.devices.map((d,index)=>{
       const deviceLabel=[d.deviceName,d.deviceType].filter(Boolean).join(' · ') || `郊狼 ${index+1}`;
@@ -179,7 +180,7 @@ function renderConnections(){
           <span class="controller-chevron">${expanded?'▾':'▸'}</span>
           <span class="controller-main">
             <span class="controller-title"><span class="online">●</span> 控制端 <code title="${esc(c.id)}">${esc(shortId(c.id,10,5))}</code></span>
-            <small>IP ${esc(c.ip||'-')} · ${esc(fmtAgo(c.lastSeenAt))}${scene}</small>
+            <small>IP ${esc(c.ip||'-')} · ${esc(fmtAgo(c.lastSeenAt))}${stage}${scene}</small>
           </span>
           <span class="controller-report"><small>Coyote</small><b>${report.instanceId?esc(shortId(report.instanceId,7,4)):'未上报'}</b><em>${esc(privacy)}</em></span>
           <span class="device-count"><b>${attachedCount}</b><small>郊狼</small></span>
@@ -202,7 +203,7 @@ function bindControllerTreeActions(){
   bindRowActions();
 }
 
-function renderClients(){ const q=$('clientSearch').value.trim().toLowerCase(); const rows=state.clients.filter(x=>x.connected===true).filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)); $('clientsBody').innerHTML=rows.map(x=>`<tr><td>${x.connected?'<span class="online">● 在线</span>':'<span class="offline">○ 离线</span>'}</td><td>${esc(x.ip||'-')}</td><td><code>${esc(x.instanceId)}</code></td><td><code>${esc(x.controllerId||'-')}</code></td><td>${x.scene?`内部地图 ${esc(x.scene)}`:'-'}<br><small>HP ${esc(x.hp??'-')}</small></td><td>${esc(x.deviceCount??0)}</td><td>${esc(x.logCount??0)}</td><td>${(x.logUploadDisabled||x.stateUploadDisabled)?`${x.logUploadDisabled?'禁日志 ':''}${x.stateUploadDisabled?'禁状态':''}`:'允许'}</td><td>${esc(fmtAgo(x.lastSeenAt))}</td><td><button data-detail="${esc(x.instanceId)}">详情</button></td></tr>`).join('')||'<tr><td colspan="10" class="muted">暂无 Coyote 上报</td></tr>'; document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openClientDetail(b.dataset.detail)); }
+function renderClients(){ const q=$('clientSearch').value.trim().toLowerCase(); const rows=state.clients.filter(x=>x.connected===true).filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)); $('clientsBody').innerHTML=rows.map(x=>`<tr><td>${x.connected?'<span class="online">● 在线</span>':'<span class="offline">○ 离线</span>'}</td><td>${esc(x.ip||'-')}</td><td><code>${esc(x.instanceId)}</code></td><td><code>${esc(x.controllerId||'-')}</code></td><td><strong>${esc(x.stageDisplay||x.stageName||'-')}</strong><br><small>${x.biome?`Biome ${esc(x.biome)} · `:''}${x.scene?`内部地图 ${esc(x.scene)} · `:''}HP ${esc(x.hp??'-')}</small></td><td>${esc(x.deviceCount??0)}</td><td>${esc(x.logCount??0)}</td><td>${(x.logUploadDisabled||x.stateUploadDisabled)?`${x.logUploadDisabled?'禁日志 ':''}${x.stateUploadDisabled?'禁状态':''}`:'允许'}</td><td>${esc(fmtAgo(x.lastSeenAt))}</td><td><button data-detail="${esc(x.instanceId)}">详情</button></td></tr>`).join('')||'<tr><td colspan="10" class="muted">暂无 Coyote 上报</td></tr>'; document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openClientDetail(b.dataset.detail)); }
 function bindRowActions(){ document.querySelectorAll('[data-kick]').forEach(b=>b.onclick=()=>openKick(b.dataset.kick)); document.querySelectorAll('[data-block]').forEach(b=>b.onclick=()=>openBlock(b.dataset.block)); }
 $('connectionSearch').addEventListener('input',renderConnections);
 $('controllerSort').addEventListener('change',renderConnections);
