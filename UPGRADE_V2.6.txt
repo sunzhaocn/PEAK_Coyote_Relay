@@ -1,0 +1,32 @@
+Coyote Relay V2.6 升级（已有 V2.5 部署）
+
+1. 先保留原目录中的：
+   .coyote-deploy.env
+   .env
+   Caddyfile.generated
+   sites/
+   Docker volumes 不要删除
+
+2. 把 V2.6 文件覆盖到当前部署目录。
+
+3. Linux：
+   chmod +x *.sh
+   ./upgrade_to_v2.6.sh
+
+   或：
+   ./manage.sh backup
+   ./manage.sh reload
+
+4. Windows Server：
+   .\upgrade_to_v2.6.ps1
+
+5. 管理面板中的安全参数/日志策略保存后立即生效，不需要重启。
+
+6. 上传 server/v4-server.ts、admin.html/js/css、Dockerfile 后不要只 restart：
+   必须执行 reload（重新 build + force recreate）。
+
+7. 验证：
+   ./manage.sh status
+   ./manage.sh doctor
+   浏览器访问 https://你的域名/
+   健康检查 https://你的域名/healthz

@@ -1,0 +1,24 @@
+Coyote Relay V2.6 快速操作
+
+首次部署：
+  Linux/macOS: chmod +x *.sh && ./deploy.sh
+  Windows:     .\deploy.ps1
+
+已有 V2.5，上传 V2.6 覆盖后：
+  Linux:       ./upgrade_to_v2.6.sh
+  Windows:     .\upgrade_to_v2.6.ps1
+
+上传了 server/v4-server.ts / admin.* / Dockerfile 后刷新：
+  Linux:       ./manage.sh reload
+  Windows:     .\manage.ps1 reload
+
+只重启当前镜像：
+  Linux:       ./manage.sh restart
+  Windows:     .\manage.ps1 restart
+
+进入命令行菜单：
+  Linux:       ./manage.sh
+  Windows:     .\manage.ps1
+
+运行时安全参数、日志实时/间隔策略：
+  直接在 https://绑定域名/ 的“安全 / 设置”保存，立即生效，不需重启。

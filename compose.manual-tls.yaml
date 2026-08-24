@@ -1,0 +1,64 @@
+name: coyote-relay
+
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "${RELAY_INTERNAL_PORT:-9998}"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      DATA_DIR: "/data"
+      MAX_CONNECTIONS: "${MAX_CONNECTIONS:-4000}"
+      MAX_CONNECTIONS_PER_IP: "${MAX_CONNECTIONS_PER_IP:-64}"
+      MAX_CLIENTS_PER_CONTROLLER: "${MAX_CLIENTS_PER_CONTROLLER:-16}"
+      MAX_MESSAGE_BYTES: "${MAX_MESSAGE_BYTES:-262144}"
+      MAX_MESSAGES_PER_SECOND: "${MAX_MESSAGES_PER_SECOND:-120}"
+      MAX_WS_HANDSHAKES_PER_MINUTE: "${MAX_WS_HANDSHAKES_PER_MINUTE:-240}"
+      IDLE_TIMEOUT: "${IDLE_TIMEOUT:-300000}"
+      ADMIN_USER: "${ADMIN_USER:-admin}"
+      ADMIN_INITIAL_PASSWORD: "${ADMIN_INITIAL_PASSWORD:-admin}"
+      ADMIN_SESSION_HOURS: "${ADMIN_SESSION_HOURS:-8}"
+      ADMIN_LOGIN_MAX_ATTEMPTS: "${ADMIN_LOGIN_MAX_ATTEMPTS:-5}"
+      ADMIN_LOGIN_WINDOW_MS: "${ADMIN_LOGIN_WINDOW_MS:-600000}"
+      ADMIN_LOGIN_LOCKOUT_MS: "${ADMIN_LOGIN_LOCKOUT_MS:-900000}"
+      ADMIN_API_MAX_PER_MINUTE: "${ADMIN_API_MAX_PER_MINUTE:-180}"
+      ADMIN_GLOBAL_LOGIN_MAX_PER_MINUTE: "${ADMIN_GLOBAL_LOGIN_MAX_PER_MINUTE:-60}"
+      ADMIN_ALLOW_INSECURE_HTTP: "${ADMIN_ALLOW_INSECURE_HTTP:-false}"
+    expose:
+      - "${RELAY_INTERNAL_PORT:-9998}"
+    volumes:
+      - relay_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"const p=process.env.PORT||'9998'; const r=await fetch('http://127.0.0.1:'+p+'/healthz'); if(!r.ok) process.exit(1)\""]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks: [coyote_internal]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      relay:
+        condition: service_healthy
+    ports:
+      - "${PUBLIC_PORT:-443}:443/tcp"
+    volumes:
+      - ./Caddyfile.generated:/etc/caddy/Caddyfile:ro
+      - ./sites:/srv/sites:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [coyote_internal]
+
+networks:
+  coyote_internal:
+    driver: bridge
+
+volumes:
+  relay_data:
+  caddy_data:
+  caddy_config:
