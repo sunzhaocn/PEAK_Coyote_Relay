@@ -1,7 +1,7 @@
 # Coyote WSS Relay Server
 
 > PEAK × DG-LAB / Coyote 官方 WebSocket 中继服务器  
-> 当前版本：**V2.6.3**
+> 当前版本：**V2.6.4**
 
 Coyote WSS Relay Server 是为 **PEAK-DG-LAB-Integration** 提供公网连接能力的中继服务端。
 
