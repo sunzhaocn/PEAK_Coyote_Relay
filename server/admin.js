@@ -149,7 +149,7 @@ function renderConnections(){
     const privacy=(report.logUploadDisabled||report.stateUploadDisabled)?`${report.logUploadDisabled?'禁日志 ':''}${report.stateUploadDisabled?'禁状态':''}`:'允许上报';
     const reportedDeviceCount=Number(report.deviceCount);
     const attachedCount=Number.isFinite(reportedDeviceCount)&&reportedDeviceCount>0?reportedDeviceCount:group.devices.length;
-    const scene=report.scene?` · ${esc(report.scene)}`:'';
+    const scene=report.scene?` · 地图 ${esc(report.scene)}`:'';
     const childRows=group.devices.map((d,index)=>{
       const deviceLabel=[d.deviceName,d.deviceType].filter(Boolean).join(' · ') || `郊狼 ${index+1}`;
       const slot=d.slotId?`Slot ${esc(d.slotId)}`:'Slot -';
@@ -202,7 +202,7 @@ function bindControllerTreeActions(){
   bindRowActions();
 }
 
-function renderClients(){ const q=$('clientSearch').value.trim().toLowerCase(); const rows=state.clients.filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)); $('clientsBody').innerHTML=rows.map(x=>`<tr><td>${x.connected?'<span class="online">● 在线</span>':'<span class="offline">○ 离线</span>'}</td><td>${esc(x.ip||'-')}</td><td><code>${esc(x.instanceId)}</code></td><td><code>${esc(x.controllerId||'-')}</code></td><td>${esc(x.scene||'-')}<br><small>HP ${esc(x.hp??'-')}</small></td><td>${esc(x.deviceCount??0)}</td><td>${esc(x.logCount??0)}</td><td>${(x.logUploadDisabled||x.stateUploadDisabled)?`${x.logUploadDisabled?'禁日志 ':''}${x.stateUploadDisabled?'禁状态':''}`:'允许'}</td><td>${esc(fmtAgo(x.lastSeenAt))}</td><td><button data-detail="${esc(x.instanceId)}">详情</button></td></tr>`).join('')||'<tr><td colspan="10" class="muted">暂无 Coyote 上报</td></tr>'; document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openClientDetail(b.dataset.detail)); }
+function renderClients(){ const q=$('clientSearch').value.trim().toLowerCase(); const rows=state.clients.filter(x=>x.connected===true).filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q)); $('clientsBody').innerHTML=rows.map(x=>`<tr><td>${x.connected?'<span class="online">● 在线</span>':'<span class="offline">○ 离线</span>'}</td><td>${esc(x.ip||'-')}</td><td><code>${esc(x.instanceId)}</code></td><td><code>${esc(x.controllerId||'-')}</code></td><td>${x.scene?`内部地图 ${esc(x.scene)}`:'-'}<br><small>HP ${esc(x.hp??'-')}</small></td><td>${esc(x.deviceCount??0)}</td><td>${esc(x.logCount??0)}</td><td>${(x.logUploadDisabled||x.stateUploadDisabled)?`${x.logUploadDisabled?'禁日志 ':''}${x.stateUploadDisabled?'禁状态':''}`:'允许'}</td><td>${esc(fmtAgo(x.lastSeenAt))}</td><td><button data-detail="${esc(x.instanceId)}">详情</button></td></tr>`).join('')||'<tr><td colspan="10" class="muted">暂无 Coyote 上报</td></tr>'; document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>openClientDetail(b.dataset.detail)); }
 function bindRowActions(){ document.querySelectorAll('[data-kick]').forEach(b=>b.onclick=()=>openKick(b.dataset.kick)); document.querySelectorAll('[data-block]').forEach(b=>b.onclick=()=>openBlock(b.dataset.block)); }
 $('connectionSearch').addEventListener('input',renderConnections);
 $('controllerSort').addEventListener('change',renderConnections);
@@ -210,7 +210,7 @@ $('expandAllControllers').addEventListener('click',()=>{ controllerGroups().forE
 $('collapseAllControllers').addEventListener('click',()=>{ controllerUi.expanded.clear(); renderConnections(); });
 $('clientSearch').addEventListener('input',renderClients);
 
-async function openClientDetail(id){ state.selectedClient=id; try{const d=await api(`/client-detail?id=${encodeURIComponent(id)}`),c=d.client; $('clientDetailTitle').textContent=`${c.instanceId} · ${c.ip||'-'} · ${c.connected?'在线':'离线'}`; $('clientMetaJson').textContent=pretty({client:c.client,privacy:c.privacy,firstSeenAt:c.firstSeenAt,lastSeenAt:c.lastSeenAt}); $('clientDeviceJson').textContent=pretty(c.dg); $('clientGameJson').textContent=pretty(c.peak); $('clientMultiplayerJson').textContent=pretty(c.multiplayer); show($('clientDetailPanel'),true); $('clientDetailPanel').scrollIntoView({behavior:'smooth',block:'start'}); syncClientLogSelect(); }catch(err){alert(err.message);} }
+async function openClientDetail(id){ state.selectedClient=id; try{const d=await api(`/client-detail?id=${encodeURIComponent(id)}`),c=d.client; $('clientDetailTitle').textContent=`${c.instanceId} · ${c.ip||'-'} · 在线`; $('clientMetaJson').textContent=pretty({client:c.client,privacy:c.privacy,firstSeenAt:c.firstSeenAt,lastSeenAt:c.lastSeenAt}); $('clientDeviceJson').textContent=pretty(c.dg); $('clientGameJson').textContent=pretty(c.peak); $('clientMultiplayerJson').textContent=pretty(c.multiplayer); show($('clientDetailPanel'),true); $('clientDetailPanel').scrollIntoView({behavior:'smooth',block:'start'}); syncClientLogSelect(); }catch(err){alert(err.message);} }
 $('closeClientDetail').onclick=()=>show($('clientDetailPanel'),false);
 
 function syncClientLogSelect(){ const sel=$('clientLogSelect'), cur=state.selectedClient||sel.value; sel.innerHTML='<option value="">选择客户端</option>'+state.clients.map(x=>`<option value="${esc(x.instanceId)}">${esc(x.ip||'-')} · ${esc(x.instanceId)}</option>`).join(''); if([...sel.options].some(o=>o.value===cur)) sel.value=cur; }

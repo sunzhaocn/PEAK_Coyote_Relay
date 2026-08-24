@@ -237,7 +237,11 @@ class RelayServer {
 
   constructor(port = PORT) {
     this.port = port;
-    for (const record of loadClientMeta()) this.reportsByInstance.set(record.instanceId, record);
+    // V2.6.4: the admin client/device views are strictly online-only.
+    // Do not restore historical client snapshots after a relay restart.
+    // Keep uploaded log files and the server audit log on disk, but clear
+    // stale realtime metadata so an offline IP never remains in the dashboard.
+    persistClientMeta(this.reportsByInstance);
   }
   connectionCount(): number { return this.sockets.size; }
   controllerCount(): number { return this.controllersById.size; }
@@ -252,7 +256,7 @@ class RelayServer {
     return {
       ok: true,
       service: 'coyote-dglab-relay',
-      version: '2.6.3',
+      version: '2.6.4',
       connections: this.connectionCount(),
       controllers: this.controllerCount(),
       controlledClients: this.clientCount(),
@@ -291,6 +295,7 @@ class RelayServer {
   clientReportSummaries(): JsonObject[] {
     const now = Date.now();
     return [...this.reportsByInstance.values()]
+      .filter(record => record.connected === true && !!record.controllerId && this.controllersById.has(record.controllerId))
       .map(record => ({
         instanceId: record.instanceId,
         controllerId: record.controllerId || null,
@@ -315,7 +320,7 @@ class RelayServer {
 
   clientReportDetail(id: string): JsonObject | null {
     const record = this.reportsByInstance.get(id) || this.reportsByController.get(id);
-    if (!record) return null;
+    if (!record || record.connected !== true || !record.controllerId || !this.controllersById.has(record.controllerId)) return null;
     return {
       instanceId: record.instanceId, controllerId: record.controllerId || null, ip: record.remoteIp || '-',
       connected: record.connected, firstSeenAt: new Date(record.firstSeenAt).toISOString(),
@@ -580,6 +585,21 @@ class RelayServer {
     if (meta) meta.lastSeenAt = Date.now();
   }
 
+  private purgeRealtimeReportsForIp(remoteIp: string): void {
+    if (!remoteIp) return;
+    let changed = false;
+    for (const [instanceId, report] of [...this.reportsByInstance.entries()]) {
+      if (report.remoteIp !== remoteIp) continue;
+      if (report.controllerId) this.reportsByController.delete(report.controllerId);
+      this.reportsByInstance.delete(instanceId);
+      changed = true;
+    }
+    if (changed) {
+      persistClientMeta(this.reportsByInstance);
+      log('info', `IP已完全离线，清除实时客户端快照 ip=${remoteIp}`);
+    }
+  }
+
   onClose(ws: ServerWebSocket<WSData>, code: number, reason: string): void {
     this.sockets.delete(ws);
     this.missedWsPongs.delete(ws);
@@ -587,23 +607,35 @@ class RelayServer {
     this.metaBySocket.delete(ws);
     const remoteIp = this.ipBySocket.get(ws) ?? '';
     this.ipBySocket.delete(ws);
+    let ipWentOffline = false;
     if (remoteIp) {
       const left = Math.max(0, (this.connectionsByIp.get(remoteIp) ?? 1) - 1);
-      if (left === 0) this.connectionsByIp.delete(remoteIp);
-      else this.connectionsByIp.set(remoteIp, left);
+      if (left === 0) {
+        this.connectionsByIp.delete(remoteIp);
+        ipWentOffline = true;
+      } else {
+        this.connectionsByIp.set(remoteIp, left);
+      }
     }
     const clientId = this.wsToClientId.get(ws);
     this.wsToClientId.delete(ws);
     if (clientId) this.clientIdToWs.delete(clientId);
-    if (!clientId) return;
+    if (!clientId) {
+      if (ipWentOffline) this.purgeRealtimeReportsForIp(remoteIp);
+      return;
+    }
 
     if (this.controllersById.has(clientId)) {
       this.controllersById.delete(clientId);
       const report = this.reportsByController.get(clientId);
       if (report) {
+        // Online-only policy: once the controller is gone, immediately remove
+        // its game/device/privacy/client snapshot from memory and metadata.
+        // Historical JSONL logs remain available as audit material.
         report.connected = false;
         report.lastSeenAt = Date.now();
         this.reportsByController.delete(clientId);
+        this.reportsByInstance.delete(report.instanceId);
         persistClientMeta(this.reportsByInstance);
       }
       const clients = this.controlledClients.get(ws);
@@ -617,6 +649,7 @@ class RelayServer {
           log('info', `踢出被控方 被控方=${cId} 控制方=${clientId}`);
         }
       }
+      if (ipWentOffline) this.purgeRealtimeReportsForIp(remoteIp);
       log('info', `控制方断开 控制方=${clientId} ip=${remoteIp || '-'} code=${code} reason=${reason || '-'}`);
       return;
     }
@@ -631,6 +664,7 @@ class RelayServer {
         if (!clients || clients.size === 0) this.startIdleTimer(controllerWs);
       }
     }
+    if (ipWentOffline) this.purgeRealtimeReportsForIp(remoteIp);
   }
 
   private updateDeviceInfo(ws: ServerWebSocket<WSData>, data: unknown): void {
