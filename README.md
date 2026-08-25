@@ -113,7 +113,7 @@ Controller B
 浏览器访问：
 
 ```text
-https://your-domain.example
+https://peak.hbsuzh.cn
 ```
 
 即可进入管理后台。
@@ -457,7 +457,7 @@ cd PEAK_Coyote_Relay
 推荐结构：
 
 ```text
-your-domain.example
+peak.hbsuzh.cn
    ↓
 DNS
    ↓
@@ -497,7 +497,7 @@ privkey.pem
 
 ```text
 sites/
-└─ your-domain.example/
+└─ peak.hbsuzh.cn/
    └─ certs/
       ├─ fullchain.pem
       └─ privkey.pem
@@ -680,7 +680,7 @@ Dockerfile
 部署完成后：
 
 ```bash
-curl https://your-domain.example/healthz
+curl https://peak.hbsuzh.cn/healthz
 ```
 
 同时可以检查：
@@ -754,13 +754,13 @@ systemctl is-enabled docker
 部署完成并确认：
 
 ```text
-https://your-domain.example
+https://peak.hbsuzh.cn
 ```
 
 以及：
 
 ```text
-wss://your-domain.example
+wss://peak.hbsuzh.cn
 ```
 
 可正常访问后，在 Coyote 客户端选择：
@@ -772,7 +772,7 @@ wss://your-domain.example
 填写：
 
 ```text
-wss://your-domain.example
+wss://peak.hbsuzh.cn
 ```
 
 应用配置后，再让 DG-LAB App 使用 Coyote 生成的对应配对地址连接。
@@ -836,7 +836,7 @@ wss://your-domain.example
 检查：
 
 ```bash
-nslookup your-domain.example
+nslookup peak.hbsuzh.cn
 ```
 
 确认域名解析到正确公网 IP。
@@ -876,7 +876,7 @@ docker compose logs
 
 检查：
 
-1. `https://your-domain.example` 是否可访问；
+1. `https://peak.hbsuzh.cn` 是否可访问；
 2. `/healthz` 是否正常；
 3. TLS 证书是否有效；
 4. 地址是否使用 `wss://`；
