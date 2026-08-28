@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.x'
+
+      - name: Build Bun relay source
+        run: bun build server/v4-server.ts --target=bun --outfile=/tmp/coyote-relay-check.js
+
+      - name: Shell syntax
+        run: bash -n deploy.sh manage.sh
+
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($file in @('deploy.ps1','manage.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { $errors | Format-List | Out-String | Write-Error }
+          }
+
+      - name: Compose syntax
+        env:
+          ADMIN_INITIAL_PASSWORD: ci-only-password
+          PUBLIC_PORT: '8443'
+          RELAY_INTERNAL_PORT: '9998'
+        run: |
+          set -euo pipefail
+          for file in compose.auto-tls.yaml compose.manual-tls.yaml compose.plain.yaml; do
+            docker compose -f "$file" config -q
+          done
+
+      - name: Enforce private relay service
+        run: |
+          set -euo pipefail
+          for file in compose.auto-tls.yaml compose.manual-tls.yaml compose.plain.yaml; do
+            relay_section="$(awk '/^  relay:/{flag=1;next}/^  [A-Za-z0-9_.-]+:/{if(flag)exit}flag{print}' "$file")"
+            if grep -Eq '^[[:space:]]+ports:' <<<"$relay_section"; then
+              echo "$file publishes the Bun relay service directly" >&2
+              exit 1
+            fi
+            grep -Eq '^[[:space:]]+expose:' <<<"$relay_section"
+          done
+
+      - name: Validate release/config contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION.txt)"
+          grep -F "version: '$version'" server/v4-server.ts
+          grep -F 'MAX_MESSAGE_BYTES = Math.max(256 * 1024' server/v4-server.ts
+          grep -F 'minimum startup value of 256 KiB' docs/CONFIGURATION.md
+          grep -F 'trusted-proxy' docs/TRUST_BOUNDARY.md || grep -F 'proxy headers' docs/TRUST_BOUNDARY.md
+          ! grep -Eq '^ADMIN_INITIAL_PASSWORD=(admin|password)?$' .env.example
+
+      - name: Reject tracked deployment secrets
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(\.env|\.coyote-deploy\.env|security\.json|Caddyfile\.generated)$|\.(key|pfx|p12)$'; then
+            echo 'deployment secret/runtime files must not be tracked' >&2
+            exit 1
+          fi

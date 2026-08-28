@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.coyote-deploy.env
+Caddyfile.generated
+sites
+backups
+generated-client-config
+*.key
+*.pem
+*.crt
+*.cer
+*.pfx
+*.p12
+*.zip
+*.tar.gz
