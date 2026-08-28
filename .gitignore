@@ -1,0 +1,39 @@
+# Deployment-generated configuration
+.env
+.coyote-deploy.env
+Caddyfile.generated
+
+# Certificates / site material
+sites/
+*.key
+*.pem
+*.crt
+*.cer
+*.pfx
+*.p12
+
+# Runtime / persistent data
+server.log
+client-logs/
+client-meta.json
+security.json
+data/
+logs/
+
+# Generated client configuration and backups
+generated-client-config/
+backups/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Archives / scratch
+*.zip
+*.tar.gz
+.tmp/
+tmp/

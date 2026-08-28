@@ -1,0 +1,43 @@
+name: Bug report
+description: Report a reproducible relay, admin or deployment problem
+title: "[Bug] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Exact steps, deployment mode and relevant configuration with secrets redacted.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Relay version
+      placeholder: 2.6.5
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Deployment mode
+      options:
+        - auto TLS / Caddy
+        - manual TLS / Caddy
+        - plain / private network
+        - direct Bun/custom topology
+    validations:
+      required: true
+  - type: checkboxes
+    id: secrets
+    attributes:
+      label: Safety
+      options:
+        - label: I removed passwords, session tokens, private keys and private client logs.
+          required: true
